@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const ItineraryScheduler = ({ schedule, onUpdate }) => {
   const [itinerary, setItinerary] = useState(schedule);
+
+  useEffect(() => {
+    const savedItinerary = localStorage.getItem('itinerary');
+    if (savedItinerary) setItinerary(JSON.parse(savedItinerary));
+  }, []);
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -12,18 +17,15 @@ const ItineraryScheduler = ({ schedule, onUpdate }) => {
     items.splice(result.destination.index, 0, reorderedItem);
 
     setItinerary(items);
-    onUpdate(items); // Notify parent component of the update
+    localStorage.setItem('itinerary', JSON.stringify(items)); // Save locally
+    onUpdate(items);
   };
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <Droppable droppableId="itinerary">
         {(provided) => (
-          <div
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className="bg-gray-100 p-4 rounded shadow"
-          >
+          <div {...provided.droppableProps} ref={provided.innerRef}>
             {itinerary.map((item, index) => (
               <Draggable key={item.id} draggableId={item.id} index={index}>
                 {(provided) => (
