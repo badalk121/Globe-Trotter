@@ -1,52 +1,29 @@
-const http = require('http');
-const { Server } = require('socket.io');
 const express = require('express');
-const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const connectDB = require('./config/db');
+require('dotenv').config();
 
-dotenv.config();
-connectDB();
+const itineraryRoutes = require('./routes/itineraryRoutes');
+const userRoutes = require('./routes/userRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
-    },
-});
 
-app.use(cors());
+// Middleware
 app.use(express.json());
+app.use(cors({ origin: process.env.CLIENT_URL }));
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/itineraries', require('./routes/itineraryRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/itinerary', itineraryRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// Socket.IO for collaboration
-io.on('connection', (socket) => {
-    console.log('A user connected', socket.id);
+// Database Connection
+mongoose
+  .connect(process.env.DB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.log('Database connection error:', err));
 
-    socket.on('joinRoom', (roomId) => {
-        socket.join(roomId);
-        console.log(`User joined room: ${roomId}`);
-    });
-
-    socket.on('updateItinerary', (data) => {
-        const { roomId, update } = data;
-        io.to(roomId).emit('itineraryUpdated', update);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected', socket.id);
-    });
-});
-
+// Start Server
 const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
